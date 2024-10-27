@@ -1,0 +1,421 @@
+<!DOCTYPE HTML>
+    <head>
+        <title>New Page</title>
+        <meta name="og:title" content="HL2 Sound Browser">
+        <meta name="og:description" content="A quick little hl2 sound browser i made when i got annoyed that no good one existed already. Sounds retrieved from https://github.com/sourcesounds/hl2">
+        
+        <script async>
+
+            const whichGame = "hl2"
+            let soundsList;
+            let pathListing;
+            let currentCategories = [];
+
+            fetch(`https://raw.githubusercontent.com/sourcesounds/${whichGame}/master/path.txt`).then((result) => {
+                result.text().then((result) => {
+                    pathListing = result;
+                    soundsList = initListing();
+                    
+                    prepareCategories(soundsList.categoryList);
+                    init();
+                    document.addEventListener("DOMContentLoaded", () => {
+                        prepareCategories(soundsList.categoryList);
+                        init();
+                    })
+                });
+            });
+
+            function prepareCategories(categories) {
+                const dest = document.getElementById("category-destination");
+
+                if (!dest) {
+                    return;
+                }
+
+                let html = "";
+                for (const category of categories) {
+                    html += generateCategoryButton(category);
+                }
+
+                dest.innerHTML = html;
+
+                dest.querySelectorAll(".sound-category").forEach((element) => {
+                    element.addEventListener("click", onCategoryClick);
+                })
+            }
+
+            function prepareResults (resultsList) {
+                let html = "";
+
+                for (const result of resultsList) {
+                    html += generateResultHtml(result);
+                }
+
+                if (resultsList[0] && resultsList[0].fileNameNoExtension === "oh_fiddlesticks!") {
+                    html += `
+                        <div class="vertDiv" audioSample>
+                            <label class="fileNameLabel">try another search term!</label>
+                            <label class="pathLabel">you got the dud</label>
+                        </div>`
+                }
+
+                document.getElementById("result-destination").innerHTML = html;
+            }
+
+            function init() {
+                const searchBar = document.getElementById("searchBar");
+
+                searchBar.addEventListener("focus", onSearchClick);
+                searchBar.addEventListener("blur", onSearchUnclick);
+                window.addEventListener("keydown", searchWrapper);
+                document.getElementById("delButton", onDeleteClick);
+                document.getElementById("enterButton", onSearchInput);
+
+                const url = window.location.href;
+
+                let query = url.slice(url.indexOf("?q=") + 3);
+                query = query.replace("_", " ");
+
+                searchBar.value = query;
+                onSearchInput();
+            }
+
+            function onCategoryClick(event) {
+                const selected = typeof event.target.getAttribute("selected") === "string";
+                const category = event.target.getAttribute("category");
+                
+                if (selected) {
+                    event.target.removeAttribute("selected");
+                    currentCategories.splice(currentCategories.indexOf(category), 1);
+                } else {
+                    event.target.setAttribute("selected", "");
+                    currentCategories.push(category);
+                }
+                
+                onSearchInput();
+            }
+
+            function onSearchClick(event) {
+                if (event.target.value === "Search for...") {
+                    event.target.value = "";
+                }
+            }
+
+            function onSearchUnclick(event) {
+                if (event.target.value === "") {
+                    event.target.value = "Search for...";
+                }
+            }
+
+            function onDeleteClick() {
+                document.getElementById("searchBar").value = "Search for...";
+            }
+
+            function searchWrapper(event) {
+                if (document.activeElement.id === "searchBar" && event.key === "Enter") {
+                    onSearchInput();
+                };
+            }
+
+            function onSearchInput() {
+                let rawSearch = document.getElementById("searchBar").value;
+
+                if (rawSearch === "Search for..." || rawSearch === "") {
+                    categorySearch();
+                    return;
+                }
+
+                const keywords = [];
+
+                while (rawSearch.length > 0) {
+                    if (rawSearch.includes(" ")) {
+                        const nextSpace = rawSearch.indexOf(" ")
+                        keywords.push(rawSearch.slice(0, nextSpace));
+                        rawSearch = rawSearch.slice(nextSpace + 1);
+                    } else {
+                        keywords.push(rawSearch);
+                        rawSearch = "";
+                    }
+                }
+
+                keywordSearch(keywords);
+
+                setUrlQuery(keywords);
+            }
+
+            function categorySearch() {
+                let results = [];
+
+                for (const category of currentCategories) {
+                    results = results.concat(soundsList[category]);
+                }
+
+                prepareResults(results);
+            }
+
+            function keywordSearch(keywordList) {
+                const results = [];
+
+                for (const category of soundsList.categoryList) {
+                    if (currentCategories.includes(category) || currentCategories.length === 0) {
+                        for (const sound of soundsList[category]) {
+                            soundDidMatchAll = true;
+
+                            for (const keyword of keywordList) {
+                                if (!(sound.rawPath.includes(keyword))) {
+                                    soundDidMatchAll = false;
+                                }
+                            }
+
+                            if (soundDidMatchAll && sound.doesNotHaveAdpcm) {
+                                results.push(sound);
+                            }
+                        }
+                    }
+                }
+
+                if (results.length === 0) {
+                    const sound = {};
+                    sound.absolutePath = "https://raw.githubusercontent.com/sourcesounds/hl2/master/sound/common/bugreporter_failed.wav";
+                    sound.rawPath = "sound/common/bugreporter_failed.wav";
+                    sound.fileName = "bugreporter_failed.wav";
+                    sound.fileNameNoExtension = "oh_fiddlesticks!";
+                    results.push(sound)
+                }
+
+                prepareResults(results);
+            }
+
+            function setUrlQuery(keywords) {
+                let keywordString = "";
+
+                for(const keyword of keywords) {
+                    keywordString += keyword;
+                    keywordString += "_";
+                }
+
+                keywordString = keywordString.slice(0, -1);
+                window.history.replaceState(null, null, `?q=${keywordString}`);
+            }
+        </script>
+
+        <script>
+            function initListing() {
+                const items = {};
+
+                let fileCount = 0;
+                while (pathListing.length > 0) {
+                    let [parsedLine, theRest] = parseLine(pathListing);
+                    
+                    pathListing = theRest;
+
+                    if (items[parsedLine.category] === undefined) {
+                        items[parsedLine.category] = [];
+                    }
+
+                    items[parsedLine.category].push(parsedLine);
+                    fileCount++;
+                }
+                console.log(`filecount for ${whichGame} was ${fileCount}`);
+
+                items.categoryList = Object.keys(items);
+                return items;
+            }
+
+            //parsing utils
+            function parseLine(string) {
+                const lineEnd = string.indexOf("\n");
+                const lineStart = 0;
+
+                //get the desired line
+                const line = string.slice(lineStart, lineEnd);
+
+                //cut off the line that was just grabbed as well as its newline
+                string = string.slice(lineEnd + 1);
+
+                const params = {};
+
+                params.category = getCategory(line);
+                params.absolutePath = getAbsolutePath(line);
+                params.rawPath = line.replaceAll("\\", "/");
+                params.fileName = getFileName(line);
+                params.fileNameNoExtension = params.fileName.slice(0, -4);
+                params.doesNotHaveAdpcm = !params.fileName.includes("adpcm");
+
+                return [params, string];
+            }
+
+            function getAbsolutePath(pathString) {
+                //turn windows formatted paths into normal formatted paths
+                const noBackslashes = pathString.replaceAll("\\", "/");
+
+                return `https://raw.githubusercontent.com/sourcesounds/${whichGame}/master/${noBackslashes}`
+            }
+
+            function getCategory(pathString) {
+                const categoryStart = pathString.indexOf("\\") + 1;
+                const categoryEnd = pathString.indexOf("\\", categoryStart);
+
+                return pathString.slice(categoryStart, categoryEnd);
+            }
+
+            function getFileName (pathString) {
+                const fileNameStart = pathString.lastIndexOf("\\") + 1;
+
+                return pathString.slice(fileNameStart);
+            }
+        </script>
+
+        <script>
+            function generateResultHtml (audioInfo) {
+                return `
+                <div class="vertDiv" audioSample>
+                    <label for="${audioInfo.fileNameNoExtension}" class="fileNameLabel">${audioInfo.fileName}</label>
+                    <label for="${audioInfo.fileNameNoExtension}" class="pathLabel">${audioInfo.rawPath}</label>
+                    <audio id="${audioInfo.fileNameNoExtension}" controls loop preload="none" src="${audioInfo.absolutePath}"></audio>
+                </div>`
+            }
+
+            function generateCategoryButton (category) {
+                return `
+                <button class="sound-category" category="${category}">${category}</button>`
+            }
+
+            const optionsHtml = `
+            <div class="horiDiv">
+                <div>
+                    <input type="color" name="pick theme color!" value="#005cb3" id="themeColorPicker" style="width: 5rem; display: none;">
+                    <label for="themeColorPicker">
+                        <div class="vertDiv" audioSample>
+                            <label class="fileNameLabel" for="themeColorPicker">Pick a color!</label>
+                            <label class="pathLabel" for="themeColorPicker">just click anywhere in this box</label>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            `
+        </script>
+
+        <style>
+            .horiDiv {
+                width: fit-content;
+                display: flex; 
+                align-content: center;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .vertDiv {
+                display: flex; 
+                flex-direction: column;
+                align-items: center;
+                margin: auto;
+                gap: 1rem;
+            }
+
+            .vertDiv[audioSample] {
+                background-color: var(--main-theme-color);
+                border: 1rem solid var(--main-theme-color);
+                border-radius: 0.4rem;
+                gap: 0.5rem;
+            }
+
+            .sound-category {
+                font-size: 3rem;
+                background-color: bisque;
+                border: 0.2rem solid black;
+                border-radius: 0.7rem
+            }
+
+            .sound-category:hover {
+                background-color: rgb(194, 132, 55);
+                border: 0.2rem solid rgb(73, 73, 73);
+            }
+
+            .sound-category[selected] {
+                background-color: rgb(241, 163, 68);
+                border: 0.2rem solid rgb(128, 128, 128);
+            }
+
+            .sound-category:hover[selected] {
+                background-color: rgb(194, 132, 55);
+                border: 0.2rem solid rgb(73, 73, 73);
+            }
+
+            .pathLabel {
+                font-size: 1rem;
+            }
+
+            .fileNameLabel {
+                font-size: 2rem;
+            }
+
+            label {
+                font-family: sans-serif;
+                font-size: 2rem;
+            }
+
+            hr {
+                border: 2px solid var(--main-theme-color);
+                border-radius: 5px;
+                width: 100%;
+            }
+
+            #searchBar {
+                font-size: 2rem;
+                color: darkgrey;
+                border: 0.2rem solid black;
+                border-radius: 0.7rem;
+                height: 2.5rem;
+            }
+
+            #searchBar:focus {
+                color: black;
+            }
+
+            .searchBarButton {
+                font-size: 2rem;
+                border: 0.2rem solid black;
+                border-radius: 0.7rem;
+                min-height: 2.5rem;
+                min-width: 2.5rem;
+                color: black;
+            }
+
+            .searchBarButton:hover {
+                background-color: darkgray;
+            }
+
+            .searchBarButton:active {
+                background-color: white;
+            }
+
+            body {
+                background-color: cornsilk;
+            }
+
+            audio {
+                width: 18rem;
+                height: 2rem;
+                gap: 0.2rem;
+            }
+
+        </style>
+    </head>
+    <body style="--main-theme-color: #005cb3">
+        <div class="vertDiv">
+            <div class="vertDiv" style="gap: 5rem;" id="top-bar">
+                <div class="horiDiv">
+                    <input type="text" class="searchBar" id="searchBar" value="Search for...">
+                    <button class="searchBarButton" id="enterButton">⏎</button>
+                    <button class="searchBarButton" id="delButton">𝘅</button>
+                </div>
+                <div class="horiDiv" style="justify-content: center;" id="category-destination">
+                </div>
+            </div>
+            <hr>
+            <div class="horiDiv" id="result-destination">
+            </div>
+        </div>
+    </body>
