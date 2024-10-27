@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
     <head>
-        <title>New Page</title>
+        <title>HL2 Sound Browser</title>
         <meta name="og:title" content="HL2 Sound Browser">
         <meta name="og:description" content="A quick little hl2 sound browser i made when i got annoyed that no good one existed already. Sounds retrieved from https://github.com/sourcesounds/hl2">
         
@@ -17,10 +17,10 @@
                     soundsList = initListing();
                     
                     prepareCategories(soundsList.categoryList);
-                    init();
+                    initApp();
                     document.addEventListener("DOMContentLoaded", () => {
                         prepareCategories(soundsList.categoryList);
-                        init();
+                        initApp();
                     })
                 });
             });
@@ -62,22 +62,25 @@
                 document.getElementById("result-destination").innerHTML = html;
             }
 
-            function init() {
+            function initApp() {
                 const searchBar = document.getElementById("searchBar");
 
                 searchBar.addEventListener("focus", onSearchClick);
                 searchBar.addEventListener("blur", onSearchUnclick);
                 window.addEventListener("keydown", searchWrapper);
-                document.getElementById("delButton", onDeleteClick);
-                document.getElementById("enterButton", onSearchInput);
+                document.getElementById("delButton").addEventListener("mousedown", onDeleteClick);
+                document.getElementById("enterButton").addEventListener("mousedown", onSearchInput);
+                console.log("gaeryuhguera")
 
                 const url = window.location.href;
 
-                let query = url.slice(url.indexOf("?q=") + 3);
-                query = query.replace("_", " ");
+                if (url.includes("?q=")) {
+                    query = url.slice(url.indexOf("?q=") + 3);
+                    query = query.replace("_", " ");
 
-                searchBar.value = query;
-                onSearchInput();
+                    searchBar.value = query;
+                    onSearchInput();
+                }
             }
 
             function onCategoryClick(event) {
@@ -109,6 +112,7 @@
 
             function onDeleteClick() {
                 document.getElementById("searchBar").value = "Search for...";
+                console.log("gagghjghhg")
             }
 
             function searchWrapper(event) {
