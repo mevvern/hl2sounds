@@ -76,7 +76,7 @@
 
                 if (url.includes("?q=")) {
                     query = url.slice(url.indexOf("?q=") + 3);
-                    query = query.replace("_", " ");
+                    query = query.replace("~", " ");
 
                     searchBar.value = query;
                     onSearchInput();
@@ -195,7 +195,7 @@
 
                 for(const keyword of keywords) {
                     keywordString += keyword;
-                    keywordString += "_";
+                    keywordString += "~";
                 }
 
                 keywordString = keywordString.slice(0, -1);
@@ -276,7 +276,7 @@
                 <div class="vertDiv" audioSample>
                     <label for="${audioInfo.fileNameNoExtension}" class="fileNameLabel">${audioInfo.fileName}</label>
                     <label for="${audioInfo.fileNameNoExtension}" class="pathLabel">${audioInfo.rawPath}</label>
-                    <audio id="${audioInfo.fileNameNoExtension}" controls loop preload="none" src="${audioInfo.absolutePath}"></audio>
+                    <audio id="${audioInfo.fileNameNoExtension}" controls preload="none" src="${audioInfo.absolutePath}"></audio>
                 </div>`
             }
 
