@@ -6,8 +6,8 @@
         
         <script async>
 
-            const allowedGames = ["hl1", "hl2", "portal", "portal2", "csgo", "tf", "episodic", "ep2"];
-            const gameNames = ["Half-Life", "Half-Life 2", "Portal", "Portal 2", "CS:GO", "Team Fortress 2", "Half-Life 2: Episode One", "Half-Life 2: Episode Two"];
+            const allowedGames = ["hl1", "hl2", "portal", "portal2", "csgo", "tf", "episodic", "ep2", "cstrike", "left4dead", "left4dead2"];
+            const gameNames = ["Half-Life", "Half-Life 2", "Portal", "Portal 2", "CS:GO", "Team Fortress 2", "Half-Life 2: Episode One", "Half-Life 2: Episode Two", "Counter-Strike: Source", "Left 4 Dead", "Left 4 Dead 2"];
             let whichGame = "hl2"
             let userResultLimit;
             let searchByFilename;
@@ -119,6 +119,8 @@
                     if(allowedGames.includes(game)) {
                         whichGame = game;
                         document.getElementById("game-selection-label").innerHTML = gameNames[allowedGames.indexOf(whichGame)];
+                    } else {
+                        whichGame = "hl2";
                     }
 
                     let query = "";
@@ -775,7 +777,13 @@
                         <hr>
                         <button class="game-button" game="tf" title="Team Fortress 2">Team Fortress 2</button>
                         <hr>
-                        <button class="game-button" game="csgo" title="Counter Strike: Global Offensive">CS:GO</button>
+                        <button class="game-button" game="cstrike" title="Counter-Strike: Source">CS:S</button>
+                        <hr>
+                        <button class="game-button" game="csgo" title="Counter-Strike: Global Offensive">CS:GO</button>
+                        <hr>
+                        <button class="game-button" game="left4dead" title="Left 4 Dead">left 4 dead</button>
+                        <hr>
+                        <button class="game-button" game="left4dead2" title="Left 4 Dead 2">Left 4 dead 2</button>
                         <br>
                     </div>
                     <div id="game-se" class="hoverToShow" title="Choose a game" style="--dropdown-title: 'Choose Game'; z-index: 998; visibility: hidden;">
