@@ -2,28 +2,50 @@
     <head>
         <title>HL2 Sound Browser</title>
         <meta name="og:title" content="HL2 Sound Browser">
-        <meta name="og:description" content="A quick little hl2 sound browser i made when i got annoyed that no good one existed already. Sounds retrieved from https://github.com/sourcesounds/hl2">
+        <meta name="og:description" content="A quick little hl2 sound browser i made when i got annoyed that no good one existed already. Sounds retrieved from https://github.com/sourcesounds">
         
         <script async>
 
-            const whichGame = "hl2"
+            const allowedGames = ["hl1", "hl2", "portal", "portal2", "csgo", "tf", "episodic", "ep2"];
+            const gameNames = ["Half-Life", "Half-Life 2", "Portal", "Portal 2", "CS:GO", "Team Fortress 2", "Half-Life 2: Episode One", "Half-Life 2: Episode Two"];
+            let whichGame = "hl2"
+            let userResultLimit;
+            let searchByFilename;
             let soundsList;
             let pathListing;
             let currentCategories = [];
 
-            fetch(`https://raw.githubusercontent.com/sourcesounds/${whichGame}/master/path.txt`).then((result) => {
-                result.text().then((result) => {
-                    pathListing = result;
-                    soundsList = initListing();
+            initSoundViewer();
+
+            function initSoundViewer () {
+                fetch(`https://raw.githubusercontent.com/sourcesounds/${whichGame}/master/path.txt`).then((result) => {
+                    result.text().then((result) => {
+                        pathListing = result;
+                        soundsList = initListing();
                     
-                    prepareCategories(soundsList.categoryList);
-                    initApp();
-                    document.addEventListener("DOMContentLoaded", () => {
                         prepareCategories(soundsList.categoryList);
                         initApp();
-                    })
+                        document.addEventListener("DOMContentLoaded", () => {
+                            prepareCategories(soundsList.categoryList);
+                            initApp();
+                        })
+                    });
                 });
-            });
+            }
+
+            function reInitSoundViewer () {
+                fetch(`https://raw.githubusercontent.com/sourcesounds/${whichGame}/master/path.txt`).then((result) => {
+                    result.text().then((result) => {
+                        pathListing = result;
+                        soundsList = initListing();
+                    
+                        currentCategories = [];
+                        prepareCategories(soundsList.categoryList);
+
+                        onSearchInput();
+                    });
+                });
+            }
 
             function prepareCategories(categories) {
                 const dest = document.getElementById("category-destination");
@@ -45,6 +67,14 @@
             }
 
             function prepareResults (resultsList) {
+                if (resultsList.length > userResultLimit) {
+                    console.log(`trying to show ${resultsList.length} results, limiting to ${userResultLimit}`)
+                    resultsList = resultsList.slice(0, userResultLimit);
+                } else {
+                    console.log(`showing ${resultsList.length} results`);
+                }
+                
+
                 let html = "";
 
                 for (const result of resultsList) {
@@ -70,17 +100,106 @@
                 window.addEventListener("keydown", searchWrapper);
                 document.getElementById("delButton").addEventListener("mousedown", onDeleteClick);
                 document.getElementById("enterButton").addEventListener("mousedown", onSearchInput);
+        
+                initHiddenMenu("help");
+                initHiddenMenu("settings");
+                initUserResultLimit();
+                initSearchBy();
+
+                document.querySelectorAll(".game-button").forEach((button) => {
+                    button.addEventListener("click", onGameChange);
+                })
                 console.log("gaeryuhguera")
 
                 const url = window.location.href;
 
-                if (url.includes("?q=")) {
-                    query = url.slice(url.indexOf("?q=") + 3);
-                    query = query.replace("~", " ");
+                if (url.includes("?g=")) {
+                    const game = url.slice(url.indexOf("?g=") + 3, url.indexOf("&q="));
+
+                    if(allowedGames.includes(game)) {
+                        whichGame = game;
+                        document.getElementById("game-selection-label").innerHTML = gameNames[allowedGames.indexOf(whichGame)];
+                    }
+
+                    let query = "";
+
+                    if (url.includes("&q=")) {
+                        query = url.slice(url.indexOf("&q=") + 3);
+                        query = query.replace("~", " ");
+                    }
+
+                    reInitSoundViewer();
 
                     searchBar.value = query;
+
                     onSearchInput();
+                } else {
+                    setUrlQuery(whichGame);
                 }
+            }
+
+            function initHiddenMenu(hiddenMenuName) {
+                document.getElementById(`${hiddenMenuName}Button`).addEventListener("mousedown", () => {
+                    document.getElementById(`${hiddenMenuName}-text`).setAttribute("transparency", "none");
+                    document.getElementById("main-root").setAttribute("transparency", "half");
+                })
+                document.getElementById(`${hiddenMenuName}ExitButton`).addEventListener("mousedown", () => {
+                    document.getElementById(`${hiddenMenuName}-text`).setAttribute("transparency", "full");
+                    document.getElementById("main-root").setAttribute("transparency", "none");
+                })
+            }
+
+            function initSearchBy () {
+                const input = document.getElementById("searchByFilename");
+                const locallyStored = localStorage.getItem("searchByFilename");
+
+                input.addEventListener("input", (event) => {
+                    searchByFilename = event.target.value;
+                    console.log(event.target.value);
+                    localStorage.setItem("searchByFilename", event.target.value);
+                })
+
+                if (!locallyStored || locallyStored.length === 0) {
+                    searchByFilename = "path";
+                } else {
+                    searchByFilename = locallyStored;
+                }
+
+                input.value = searchByFilename;
+            }
+
+            function initUserResultLimit () {
+                const input = document.getElementById("userResultLimit");
+                const locallyStored = localStorage.getItem("userResultLimit");
+
+                input.addEventListener("input", (event) => {
+                    console.log(event.target.value);
+                    userResultLimit = event.target.value;
+                    localStorage.setItem("userResultLimit", event.target.value);
+                })
+
+                if (!locallyStored || locallyStored.length === 0) {
+                    userResultLimit = 500;
+                } else {
+                    userResultLimit = parseInt(locallyStored);
+                }
+
+                input.value = userResultLimit;
+            }
+
+            function onGameChange(event) {
+                whichGame = event.target.getAttribute("game");
+                reInitSoundViewer();
+
+                event.target.parentNode.querySelectorAll("button").forEach((button) => {
+                    button.removeAttribute("selected");
+                })
+
+                event.target.setAttribute("selected", "");
+
+                document.getElementById("game-selection-label").innerHTML = gameNames[allowedGames.indexOf(whichGame)];
+
+                onSearchInput();
             }
 
             function onCategoryClick(event) {
@@ -126,6 +245,7 @@
 
                 if (rawSearch === "Search for..." || rawSearch === "") {
                     categorySearch();
+                    setUrlQuery("", whichGame);
                     return;
                 }
 
@@ -144,7 +264,7 @@
 
                 keywordSearch(keywords);
 
-                setUrlQuery(keywords);
+                setUrlQuery(keywords, whichGame);
             }
 
             function categorySearch() {
@@ -159,20 +279,75 @@
 
             function keywordSearch(keywordList) {
                 const results = [];
+                const parsedKeywords = {};
+
+                if (keywordList.length === 0) {
+                    return;
+                }
+
+                for (const keyword of keywordList) {
+                    const parsedKeyword = {};
+                    switch(keyword[0]) {
+                        default:
+                        case "&":
+                            parsedKeyword.operator = "AND";
+                            parsedKeyword.string = keyword;
+                        break
+                        case "+": 
+                            parsedKeyword.operator = "INCLUDES";
+                            parsedKeyword.string = keyword.slice(1);
+                        break
+                        case "-":
+                            parsedKeyword.operator = "NOT";
+                            parsedKeyword.string = keyword.slice(1);
+                        break
+                    }
+
+                    parsedKeywords[parsedKeyword.string] = parsedKeyword;
+                }
 
                 for (const category of soundsList.categoryList) {
                     if (currentCategories.includes(category) || currentCategories.length === 0) {
                         for (const sound of soundsList[category]) {
-                            soundDidMatchAll = true;
+                            let soundDidMatchAll = true;
+                            let soundDidMatchInclude;
+                            let searchedString;
 
-                            for (const keyword of keywordList) {
-                                if (!(sound.rawPath.includes(keyword))) {
-                                    soundDidMatchAll = false;
-                                }
+                            if (searchByFilename === "path") {
+                                searchedString = sound.rawPath;
+                            } else {
+                                searchedString = sound.fileName;
                             }
 
-                            if (soundDidMatchAll && sound.doesNotHaveAdpcm) {
-                                results.push(sound);
+                            for (const keyword in parsedKeywords) {
+                                switch(parsedKeywords[keyword].operator) {
+                                    case "AND":
+                                        if (!searchedString.includes(keyword)) {
+                                            soundDidMatchAll = false;
+                                        }
+                                    break
+                                    case "INCLUDES":
+                                        if (searchedString.includes(keyword)) {
+                                            soundDidMatchInclude = true;
+                                        } else {
+                                            soundDidMatchInclude = false;
+                                        }
+                                    break
+                                    case "NOT":
+                                        if (searchedString.includes(keyword)) {
+                                            soundDidMatchAll = false;
+                                        }
+                                    break
+                                } 
+                            }
+                            if (typeof soundDidMatchInclude !== "undefined") {
+                                if (soundDidMatchAll && !sound.hasAdpcm && !sound.hasBcs && soundDidMatchInclude) {
+                                    results.push(sound);
+                                }
+                            } else {
+                                if (soundDidMatchAll && !sound.hasAdpcm && !sound.hasBcs) {
+                                    results.push(sound);
+                                }
                             }
                         }
                     }
@@ -190,7 +365,7 @@
                 prepareResults(results);
             }
 
-            function setUrlQuery(keywords) {
+            function setUrlQuery(keywords, game) {
                 let keywordString = "";
 
                 for(const keyword of keywords) {
@@ -199,7 +374,14 @@
                 }
 
                 keywordString = keywordString.slice(0, -1);
-                window.history.replaceState(null, null, `?q=${keywordString}`);
+
+                if (keywordString.length > 0) {
+                    queryString = `?g=${game}&q=${keywordString}`
+                } else {
+                    queryString = `?g=${game}`
+                }
+
+                window.history.replaceState(null, null, queryString);
             }
         </script>
 
@@ -241,10 +423,12 @@
 
                 params.category = getCategory(line);
                 params.absolutePath = getAbsolutePath(line);
-                params.rawPath = line.replaceAll("\\", "/");
+                params.rawPath = `${whichGame}/` + line.replaceAll("\\", "/");
                 params.fileName = getFileName(line);
                 params.fileNameNoExtension = params.fileName.slice(0, -4);
-                params.doesNotHaveAdpcm = !params.fileName.includes("adpcm");
+                params.hasAdpcm = false //params.fileName.includes("adpcm");
+                params.hasBcs = false //params.fileName.includes("bcs");
+
 
                 return [params, string];
             }
@@ -282,7 +466,7 @@
 
             function generateCategoryButton (category) {
                 return `
-                <button class="sound-category" category="${category}">${category}</button>`
+                <button class="sound-category" title="${category}" category="${category}">${category}</button>`
             }
 
             const optionsHtml = `
@@ -308,6 +492,7 @@
                 flex-direction: row;
                 flex-wrap: wrap;
                 gap: 1rem;
+                min-width: 0px;
             }
 
             .vertDiv {
@@ -378,6 +563,60 @@
                 color: black;
             }
 
+            .hoverToShow::before {
+                content: var(--dropdown-title, 'Please Add A Title Bro');
+                color: black;
+                font-size: 2rem;
+                font-family: sans-serif;
+            }
+
+            .hoverToShow {
+                width: max-content;
+                background-color: lightblue;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.2rem;
+                border: 0.2rem solid black;
+                border-radius: 0.7rem;
+                max-height: 2.5rem;
+                transition: max-height 0.1s ease-in, background-color 0.1s ease-in;
+            }
+
+            .hoverToShow>hr {
+                border: 1px solid var(--hover-hr-color, black);
+                width: var(--hr-special-width, 70%);
+            }
+
+            .hoverToShow:hover {
+                background-color: var(--hover-background, red);
+                max-height: 50rem;
+                transition: max-height 0.2s ease-in, background-color 0.2s ease-in;
+            }
+
+            .game-button {
+                font-size: 1.5rem;
+                background-color: bisque;
+                border: 0.2rem solid black;
+                border-radius: 0.7rem
+            }
+
+            .game-button:hover {
+                background-color: rgb(194, 132, 55);
+                border: 0.2rem solid rgb(73, 73, 73);
+            }
+
+            .game-button[selected] {
+                background-color: rgb(241, 163, 68);
+                border: 0.2rem solid rgb(128, 128, 128);
+            }
+
+            .game-button:hover[selected] {
+                background-color: rgb(194, 132, 55);
+                border: 0.2rem solid rgb(73, 73, 73);
+            }
+
             .searchBarButton {
                 font-size: 2rem;
                 border: 0.2rem solid black;
@@ -405,21 +644,159 @@
                 gap: 0.2rem;
             }
 
+            code {
+                background-color: gray;
+                font-family: monospace;
+                border-radius: 0.2rem;
+                padding-left: 0.1rem;
+                padding-right: 0.1rem;
+            }
+
+            #game-selection-label {
+                background-color:rgb(255, 203, 107);
+                border-radius: 0.4rem;
+                outline: 1rem solid rgb(255, 203, 107);
+            }
+
+            .hidden-menu>ul {
+                font-family: sans-serif;
+                font-size: 1.5rem;
+            }
+
+            [transparency="full"] {
+                visibility: hidden;
+                opacity: 0; 
+            }
+
+            [transparency="half"] {
+                opacity: 0.5;
+            }
+
+            [transparency="none"] {
+                opacity: 1;
+            }
+
+            [transparency] {
+                transition: opacity 0.1s ease-in, visibility 0.1s ease-in;
+            }
+
+            li {
+                list-style-type: none;
+                text-indent: -3rem;
+                margin-left: 3rem;
+                margin-right: 1rem;
+            }
+
+            .hidden-menu>p {
+                font-size: 3rem; 
+                font-family: sans-serif; 
+                margin: 1rem;
+            }
+
+            .settings-item {
+                background-color: bisque;
+                border-radius: 0.5rem;
+                outline: 0.3rem solid black;
+                margin: 0.3rem;
+                padding: 0.3rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .exit-button {
+                position: absolute; right: 1rem; top: 1rem;
+            }
+
+            .settings-input {
+                background-color: rgb(255, 255, 255);
+                font-size: 2rem;
+            }
+
+            .hidden-menu {
+                z-index: 999;
+                position: absolute;
+                margin-left: auto;
+                margin-right: auto;
+                left: 10rem;
+                right: 10rem;
+                top: 5rem;
+                border-radius: 3rem;
+                border: 0.2rem solid rgb(155, 116, 65);
+                background-color: burlywood; 
+                gap: 1rem; 
+                max-width: 75rem;
+            }
         </style>
     </head>
     <body style="--main-theme-color: #005cb3">
-        <div class="vertDiv">
-            <div class="vertDiv" style="gap: 5rem;" id="top-bar">
-                <div class="horiDiv">
-                    <input type="text" class="searchBar" id="searchBar" value="Search for...">
-                    <button class="searchBarButton" id="enterButton">⏎</button>
-                    <button class="searchBarButton" id="delButton">𝘅</button>
+        <div id="help-text" class="vertDiv hidden-menu" transparency="full">
+            <button class="searchBarButton exit-button" id="helpExitButton" title="close help window">𝘅</button>
+            <p>Search Operators</p>
+            <ul>
+                <li><code>AND</code>: The default operator. If you add no character (or an "<code>&</code>") to the beginning of the search term, this is the operator it will use. If a term is using <code>AND</code>, a result must match it or else the result won't show up.</li>
+                <br>
+                <li style="text-indent: -8rem; margin-left: 8rem;"><code>INCLUDES</code>: If you add a "<code>+</code>" character to the beginning of the search term, this is the operator it will use. If a term is using <code>INCLUDES</code>, it will remove all results that don't match it.</li>
+                <br>
+                <li><code>NOT</code>: If you add a "<code>-</code>" character to the beginning of the search term, this is the operator it will use. If a term is using <code>NOT</code>, it will remove all results that do match it.</li>
+            </ul>
+        </div>
+        <div id="settings-text" class="vertDiv hidden-menu" transparency="full">
+            <button class="searchBarButton exit-button" id="settingsExitButton" title="close settings window">𝘅</button>
+            <p>Settings</p>
+            <div class="horiDiv">
+                <div class="vertDiv settings-item">
+                    <label for="userResultLimit">Number of Results</label>
+                    <input type="number" class="settings-item settings-input" name="Result limit" title="Enter your desired limit on the number of results" id="userResultLimit" style="width: 20rem;" value="500">
                 </div>
+                <div class="vertDiv settings-item">
+                    <label for="searchByFilename">Search by...</label>
+                    <select class="settings-item settings-input" id="searchByFilename" title="choose whether to search by the sounds' path or the sounds' filename">
+                        <option value="path">Path</option>
+                        <option value="filename">Filename</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="vertDiv" id="main-root" transparency="none">
+            <div class="vertDiv" style="gap: 2rem;" id="top-bar">
+                <div class="horiDiv" style="max-height: 2.5rem;">
+                    <div id="game-selection" class="hoverToShow" title="Choose a game" style="position: absolute; z-index: 998; --hover-background: rgb(241, 174, 225); --hover-hr-color: rgb(99, 30, 30); --dropdown-title: 'Choose Game'; --dropdown-item-color: rgb(25, 0, 255);">
+                        <hr style="--hr-special-width: 90%">
+                        <button class="game-button" game="hl1" title="Half-Life">Half-Life</button>
+                        <hr>
+                        <button class="game-button" game="hl2" title="Half-life 2">Half-Life 2</button>
+                        <hr>
+                        <button class="game-button" game="episodic" title="Half-Life 2: Episode One">Half-Life 2: Ep. 1</button>
+                        <hr>
+                        <button class="game-button" game="ep2" title="Half-Life 2: Episode Two">Half-Life 2: Ep. 2</button>
+                        <hr>
+                        <button class="game-button" game="portal" title="Portal">Portal</button>
+                        <hr>
+                        <button class="game-button" game="portal2" title="Portal 2">Portal 2</button>
+                        <hr>
+                        <button class="game-button" game="tf" title="Team Fortress 2">Team Fortress 2</button>
+                        <hr>
+                        <button class="game-button" game="csgo" title="Counter Strike: Global Offensive">CS:GO</button>
+                        <br>
+                    </div>
+                    <div id="game-se" class="hoverToShow" title="Choose a game" style="--dropdown-title: 'Choose Game'; z-index: 998; visibility: hidden;">
+                    </div>
+                    <input type="text" class="searchBar" id="searchBar" value="Search for..." title="Search for a sound file.">
+                    <button class="searchBarButton" id="enterButton" title="perform a search">⏎</button>
+                    <button class="searchBarButton" id="delButton" title="delete search terms">𝘅</button>
+                    <button class="searchBarButton" id="helpButton" title="help">?</button>
+                    <button class="searchBarButton" id="settingsButton" title="settings">⚙️</button>
+                    
+                </div>
+                <span translate="no">
+                    <label id="game-selection-label" for="game-selection">Half-Life 2</label>
+                </span>
                 <div class="horiDiv" style="justify-content: center;" id="category-destination">
                 </div>
             </div>
             <hr>
-            <div class="horiDiv" id="result-destination">
-            </div>
+            <span translate="no">
+                <div class="horiDiv" id="result-destination">
+                </div>
+            </span>
         </div>
     </body>
