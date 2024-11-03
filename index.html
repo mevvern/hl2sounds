@@ -285,6 +285,9 @@
             function keywordSearch(keywordList) {
                 const results = [];
                 const parsedKeywords = {};
+                let searchContainsInclude = false;
+
+                console.log(keywordList);
 
                 if (keywordList.length === 0) {
                     return;
@@ -294,13 +297,17 @@
                     const parsedKeyword = {};
                     switch(keyword[0]) {
                         default:
-                        case "&":
                             parsedKeyword.operator = "AND";
                             parsedKeyword.string = keyword;
+                        break
+                        case "&":
+                            parsedKeyword.operator = "AND";
+                            parsedKeyword.string = keyword.slice(1);
                         break
                         case "+": 
                             parsedKeyword.operator = "INCLUDES";
                             parsedKeyword.string = keyword.slice(1);
+                            searchContainsInclude = true;
                         break
                         case "-":
                             parsedKeyword.operator = "NOT";
@@ -314,8 +321,9 @@
                 for (const category of soundsList.categoryList) {
                     if (currentCategories.includes(category) || currentCategories.length === 0) {
                         for (const sound of soundsList[category]) {
-                            let soundDidMatchAll = true;
-                            let soundDidMatchInclude;
+                            let soundMatchAnd = true;
+                            let soundMatchNot = false;
+                            let soundMatchInclude = false;
                             let searchedString;
 
                             if (searchByFilename === "path") {
@@ -328,29 +336,28 @@
                                 switch(parsedKeywords[keyword].operator) {
                                     case "AND":
                                         if (!searchedString.includes(keyword)) {
-                                            soundDidMatchAll = false;
+                                            soundMatchAnd = false;
                                         }
                                     break
                                     case "INCLUDES":
                                         if (searchedString.includes(keyword)) {
-                                            soundDidMatchInclude = true;
-                                        } else {
-                                            soundDidMatchInclude = false;
+                                            soundMatchInclude = true;
                                         }
                                     break
                                     case "NOT":
                                         if (searchedString.includes(keyword)) {
-                                            soundDidMatchAll = false;
+                                            soundMatchNot = true;
                                         }
                                     break
                                 } 
                             }
-                            if (typeof soundDidMatchInclude !== "undefined") {
-                                if (soundDidMatchAll && !sound.hasAdpcm && !sound.hasBcs && soundDidMatchInclude) {
+
+                            if (searchContainsInclude) {
+                                if (soundMatchAnd && !soundMatchNot && soundMatchInclude && !sound.hasAdpcm && !sound.hasBcs) {
                                     results.push(sound);
                                 }
                             } else {
-                                if (soundDidMatchAll && !sound.hasAdpcm && !sound.hasBcs) {
+                                if (soundMatchAnd && !soundMatchNot && !sound.hasAdpcm && !sound.hasBcs) {
                                     results.push(sound);
                                 }
                             }
@@ -361,7 +368,7 @@
                 if (results.length === 0) {
                     const sound = {};
                     sound.absolutePath = "https://raw.githubusercontent.com/sourcesounds/hl2/master/sound/common/bugreporter_failed.wav";
-                    sound.rawPath = "sound/common/bugreporter_failed.wav";
+                    sound.rawPath = "hl2/sound/common/bugreporter_failed.wav";
                     sound.fileName = "bugreporter_failed.wav";
                     sound.fileNameNoExtension = "oh_fiddlesticks!";
                     results.push(sound)
