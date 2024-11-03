@@ -127,15 +127,17 @@
 
                     if (url.includes("&q=")) {
                         query = url.slice(url.indexOf("&q=") + 3);
-                        query = query.replace("~", " ");
+                        query = query.replaceAll("~", " ");
                     }
+
+                    console.log(query)
 
                     searchBar.value = query;
 
                     reInitSoundViewer();
                 } else if (url.includes("?q")) {
                     query = url.slice(url.indexOf("?q=") + 3);
-                    query = query.replace("~", " ");
+                    query = query.replaceAll("~", " ");
 
                     searchBar.value = query;
                 }
