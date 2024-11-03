@@ -130,14 +130,17 @@
                         query = query.replace("~", " ");
                     }
 
-                    reInitSoundViewer();
-
                     searchBar.value = query;
 
-                    onSearchInput();
-                } else {
-                    setUrlQuery(whichGame);
+                    reInitSoundViewer();
+                } else if (url.includes("?q")) {
+                    query = url.slice(url.indexOf("?q=") + 3);
+                    query = query.replace("~", " ");
+
+                    searchBar.value = query;
                 }
+
+                onSearchInput();
             }
 
             function initHiddenMenu(hiddenMenuName) {
@@ -247,7 +250,7 @@
 
                 if (rawSearch === "Search for..." || rawSearch === "") {
                     categorySearch();
-                    setUrlQuery("", whichGame);
+                    setUrlQuery([""], whichGame);
                     return;
                 }
 
