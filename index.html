@@ -48,6 +48,8 @@
             }
 
             function prepareCategories(categories) {
+                clearCategoryDestination();
+
                 const dest = document.getElementById("category-destination");
 
                 if (!dest) {
@@ -67,6 +69,9 @@
             }
 
             function prepareResults (resultsList) {
+
+                clearResultDestination();
+
                 if (resultsList.length > userResultLimit) {
                     console.log(`trying to show ${resultsList.length} results, limiting to ${userResultLimit}`)
                     resultsList = resultsList.slice(0, userResultLimit);
@@ -282,6 +287,18 @@
                 }
 
                 prepareResults(results);
+            }
+
+            function clearResultDestination() {
+                document.querySelectorAll("#result-destination>div").forEach((div) => {
+                    div.remove();
+                });
+            }
+
+            function clearCategoryDestination() {
+                document.querySelectorAll("#category-destination>div").forEach((div) => {
+                    div.remove();
+                });
             }
 
             function keywordSearch(keywordList) {
