@@ -4,6 +4,10 @@
         <meta name="og:title" content="Source Game Sound Browser">
         <meta id="ogDesc" name="og:description" content="A quick little source game sound browser i made when i got annoyed that no good one existed already. Sounds retrieved from https://github.com/sourcesounds">
         
+        <script>
+            document.getElementById("ogDesc").setAttribute("content", "baba test");
+        </script>
+
         <script async>
             const allowedGames = ["hl1", "hl2", "portal", "portal2", "csgo", "tf", "episodic", "ep2", "cstrike", "left4dead", "left4dead2"];
             const gameNames = ["Half-Life", "Half-Life 2", "Portal", "Portal 2", "CS:GO", "Team Fortress 2", "Half-Life 2: Episode One", "Half-Life 2: Episode Two", "Counter-Strike: Source", "Left 4 Dead", "Left 4 Dead 2"];
@@ -14,8 +18,6 @@
             let pathListing;
             let currentCategories = [];
 
-            document.getElementById("ogDesc").setAttribute("content", "baba test");
-            
             initSoundViewer();
 
             function initSoundViewer () {
